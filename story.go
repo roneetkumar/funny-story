@@ -113,12 +113,30 @@ func JSONStory(r io.Reader) (Story, error) {
 }
 
 type handler struct {
-	s Story
-	t *template.Template
+	s      Story
+	t      *template.Template
+	pathFn func(r *http.Request) string
+}
+
+func defaultPathFn(r *http.Request) string {
+	path := strings.TrimSpace(r.URL.Path)
+
+	if path == "" || path == "/" {
+		path = "/intro"
+	}
+
+	return path[1:]
 }
 
 //HandlerOption func
 type HandlerOption func(h *handler)
+
+//WithPathFunc func
+func WithPathFunc(fn func(r *http.Request) string) HandlerOption {
+	return func(h *handler) {
+		h.pathFn = fn
+	}
+}
 
 //WithTemplate func
 func WithTemplate(t *template.Template) HandlerOption {
@@ -131,7 +149,7 @@ func WithTemplate(t *template.Template) HandlerOption {
 func NewHandler(s Story, opt ...HandlerOption) http.Handler {
 
 	h := handler{
-		s, tmp,
+		s, tmp, defaultPathFn,
 	}
 
 	for _, opt := range opt {
@@ -143,13 +161,7 @@ func NewHandler(s Story, opt ...HandlerOption) http.Handler {
 
 func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
-	path := strings.TrimSpace(r.URL.Path)
-
-	if path == "" || path == "/" {
-		path = "/intro"
-	}
-
-	path = path[1:]
+	path := h.pathFn(r)
 
 	if chapter, ok := h.s[path]; ok {
 
