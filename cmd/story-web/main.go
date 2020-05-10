@@ -1,18 +1,20 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
+	"log"
+	"net/http"
 	"os"
 
-	"github.com/roneetkumar/cyoa"
+	funnystory "github.com/roneetkumar/funny-story"
 )
 
 func main() {
 	fmt.Println("Adventurous Books")
 
-	filename := flag.String("file", "gopher.json", "the JSON file with the CYOA story")
+	port := flag.Int("port", 3000, "the port to start the server")
+	filename := flag.String("file", "gopher.json", "the JSON file with the funny story")
 
 	flag.Parse()
 
@@ -22,13 +24,16 @@ func main() {
 		panic(err)
 	}
 
-	d := json.NewDecoder(f)
+	story, err := funnystory.JSONStory(f)
 
-	var story cyoa.Story
-
-	if err := d.Decode(&story); err != nil {
+	if err != nil {
 		panic(err)
 	}
+
+	h := funnystory.NewHandler(story)
+
+	fmt.Printf("Starting the server on port %d\n", *port)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), h))
 
 	fmt.Printf("%+v\n", story)
 
